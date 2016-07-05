@@ -25,24 +25,28 @@ const zip = function(dir, outDir='.') {
       return outFile;
 };
 
-const info = function(message) {
+const _info = function(message) {
     console.log(`       ${message}`);
 };
 
-const error = function(message) {
+const _warning = function(message) {
+    console.log(`-----> ${message}`);
+}
+
+const _error = function(message) {
     console.error(` !     ${message}`);
 };
 
-const deploy = function(conn) {
+const deploy = function(conn, info=_info, warning=_warning, error=_error) {
     return function(file) {
-        console.log(`Packaging ${file}`);
+        info(`Packaging ${file}`);
         const zipPath = zip(file);
         console.log(`Deploying ${zipPath}`);
 
         return jsforceConnection()
             .then( conn => {
                 return new Promise((resolve, reject) => {
-                    console.log('-----> Deploying metadata');
+                    warning('Deploying metadata');
                     const zipStream = fs.createReadStream(zipPath);
                     conn.metadata.pollTimeout = 240*1000;
                     const deployLocator = conn.metadata.deploy(zipStream, {});
@@ -70,7 +74,6 @@ const deploy = function(conn) {
             });
     }
 };
-
 
 module.exports = deploy;
 

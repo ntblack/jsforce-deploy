@@ -1,0 +1,17 @@
+{
+  "name": "jsforce-deploy",
+  "version": "1.0.0",
+  "description": "Deploys directory or zip",
+  "bin": {
+    "jsforce-deploy": "bin/deploy.js"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "ntblack",
+  "license": "MIT",
+  "dependencies": {
+    "archiver": "^1.0.0"
+  }
+}

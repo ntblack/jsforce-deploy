@@ -12,6 +12,7 @@
   "author": "ntblack",
   "license": "MIT",
   "dependencies": {
-    "archiver": "^1.0.0"
+    "archiver": "^1.0.0",
+    "jsforce-connection": "https://github.com/ntblack/jsforce-connection"
   }
 }

@@ -3,7 +3,6 @@ const archiver = require('archiver');
 const fs = require('fs');
 const path = require('path');
 
-const jsforceConnection = require('jsforce-connection');
 
 const zip = function(dir, outDir='.') {
       const archive = archiver('zip');
@@ -11,18 +10,20 @@ const zip = function(dir, outDir='.') {
       const outFile = path.join(outDir, file.base + '.zip');
       const output = fs.createWriteStream(outFile);
 
-      output.on('close', function() {
-         console.log(`${archive.pointer()} bytes written to ${outFile}`);
-      });
+      return new Promise((resolve, reject) => {
+          output.on('close', function() {
+              console.log(`${archive.pointer()} bytes written to ${outFile}`);
+              resolve(outFile);
+          });
+          archive.on('error', function(err){
+              console.error(err);
+              reject(err);
+          });
 
-      archive.on('error', function(err){
-         console.error(err);
+          archive.pipe(output);
+          archive.directory(dir, file.base);
+          archive.finalize();
       });
-
-      archive.pipe(output);
-      archive.directory(dir, file.base);
-      archive.finalize();
-      return outFile;
 };
 
 const _info = function(message) {
@@ -40,38 +41,36 @@ const _error = function(message) {
 const deploy = function(conn, info=_info, warning=_warning, error=_error) {
     return function(file) {
         info(`Packaging ${file}`);
-        const zipPath = zip(file);
-        console.log(`Deploying ${zipPath}`);
 
-        return jsforceConnection()
-            .then( conn => {
-                return new Promise((resolve, reject) => {
-                    warning('Deploying metadata');
-                    const zipStream = fs.createReadStream(zipPath);
-                    conn.metadata.pollTimeout = 240*1000;
-                    const deployLocator = conn.metadata.deploy(zipStream, {});
-                    deployLocator.complete(true, function(err, result) {
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
-                        resolve(result);
-                    });
+        return zip(file).then((zipPath) => {
+            return new Promise((resolve, reject) => {
+                info(`Deploying ${zipPath}`);
+                warning('Deploying metadata');
+                const zipStream = fs.createReadStream(zipPath);
+                conn.metadata.pollTimeout = 240 * 1000;
+                const deployLocator = conn.metadata.deploy(zipStream, {});
+                deployLocator.complete(true, function (err, result) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve(result);
+                });
+            })
+                .then(result => {
+                    info('done ? :' + result.done);
+                    info('success ? : ' + result.true);
+                    info('state : ' + result.state);
+                    info('component errors: ' + result.numberComponentErrors);
+                    info('components deployed: ' + result.numberComponentsDeployed);
+                    info('tests completed: ' + result.numberTestsCompleted);
+                    info('       ' + (result.success ? 'Success' : 'Failed'));
                 })
-            })
-            .then( result => {
-                info('done ? :' + result.done);
-                info('success ? : ' + result.true);
-                info('state : ' + result.state);
-                info('component errors: ' + result.numberComponentErrors);
-                info('components deployed: ' + result.numberComponentsDeployed);
-                info('tests completed: ' + result.numberTestsCompleted);
-                info('       ' + (result.success ? 'Success' : 'Failed'));
-            })
-            .catch( err => {
-                error(err.stack);
-                process.exit(1);
-            });
+                .catch(err => {
+                    error(err.stack);
+                    process.exit(1);
+                });
+        });
     }
 };
 

@@ -64,7 +64,15 @@ const deploy = function(conn, info=_info, warning=_warning, error=_error) {
                     info('component errors: ' + result.numberComponentErrors);
                     info('components deployed: ' + result.numberComponentsDeployed);
                     info('tests completed: ' + result.numberTestsCompleted);
-                    info('       ' + (result.success ? 'Success' : 'Failed'));
+
+                    if(result.details.componentFailures) {
+                        error(JSON.stringify(result.details.componentFailures));
+                        info('Deployment failed');
+                        process.exit(1);
+                    } else {
+                        info('Deployment succeeded');
+                    }
+
                 })
                 .catch(err => {
                     error(err.stack);
